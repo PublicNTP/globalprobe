@@ -2,6 +2,12 @@
 # GlobalProbe
 Project GlobalProbe is an NTP server monitoring platform
 
+## Installation
+
+### Terraform
+
+[Install Terraform](https://learn.hashicorp.com/terraform/getting-started/install.html)
+
 
 ## Legal
 `globalprobe` is copyrighted by [PublicNTP, Inc.](https://publicntp.org),
