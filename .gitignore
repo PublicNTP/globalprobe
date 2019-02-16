@@ -1,1 +1,5 @@
 bin/
+.*.swp
+./tf_scripts/.terraform/
+./tf_scripts/*.tfstate*
+
