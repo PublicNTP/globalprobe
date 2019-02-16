@@ -12,9 +12,18 @@ Project GlobalProbe is an NTP server monitoring platform
 
 Cheated and did host role with unlimited.
 
-### Build User Authentication
+### Build AWS resources
 
-Run TF script for Cognito
+Run TF script for AWS
+
+### Cognito JS library (actually already in JS package, but noting how to get new one)
+
+sudo apt-get -y install npm
+mkdir -p ~/tmp/cognito
+cd ~/tmp/cognito
+npm install amazon-cognito-identity-js package
+cp node_modules/amazon-cognito-identity-js/dist/amazon-cognito-identity.min.js .../src/js/
+
 
 ### Build S3 Bucket
 

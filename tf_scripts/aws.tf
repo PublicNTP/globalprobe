@@ -28,6 +28,20 @@ resource "aws_cognito_user_group" "globalprobe_admin_user_group" {
 }
 
 
+# Cognito User Pool Client
+resource "aws_cognito_user_pool_client" "javascript_client" {
+    name = "GlobalProbe_WebApp"
+
+    user_pool_id    = "${aws_cognito_user_pool.globalprobe_user_pool.id}"
+}
+
+# Cognito Identity Pool
+resource "aws_cognito_identity_pool" "globalprobe_identity_pool" {
+    identity_pool_name                  = "globalprobe_identity_pool"
+    allow_unauthenticated_identities    = false
+}
+
+
 # S3 bucket for static web content
 resource "aws_s3_bucket" "static_web_content" {
     bucket  = "globalprobe.dev.publicntp.org"
@@ -49,10 +63,18 @@ resource "aws_s3_bucket_object" "index_page" {
     content_type    = "text/html"
 }
 
-# Javascript
-resource "aws_s3_bucket_object" "javascript" {
+# Cognito JS
+resource  "aws_s3_bucket_object" "cognito-js" {
     bucket          = "${aws_s3_bucket.static_web_content.id}"
-    key             = "js/globalprobe.js"
-    source          = "../src/js/globalprobe.js"
+    key             = "js/amazon-cognito-identity.min.js"
+    source          = "../src/js/amazon-cognito-identity.min.js"
+    content_type    = "text/javascript"
+}
+
+# Login JS
+resource "aws_s3_bucket_object" "login-js" {
+    bucket          = "${aws_s3_bucket.static_web_content.id}"
+    key             = "js/login.js"
+    source          = "../src/js/login.js"
     content_type    = "text/javascript"
 }
