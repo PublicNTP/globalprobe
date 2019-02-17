@@ -21,6 +21,7 @@ provider:
   name: aws
   runtime: python3.7
   region: us-east-2
+  memorySize: 128       # 128MB
 
 # you can add statements to the Lambda function's IAM Role here
 #  iamRoleStatements:
