@@ -25,11 +25,11 @@ function attemptServerAdd()
 
     var dnsHostnameOrIpAddress = document.getElementById("input_new_server_address").value;
 
-    console.log("New server hostname/IP: " + dnsHostnameOrIpAddress );
+    //console.log("New server hostname/IP: " + dnsHostnameOrIpAddress );
 
     var identityToken = getIdentityToken();
 
-    console.log("Identity token: " + identityToken );
+    //console.log("Identity token: " + identityToken );
 
     // Create add server POST and submit
     const addServerRequest = new XMLHttpRequest();
@@ -39,7 +39,7 @@ function attemptServerAdd()
     addServerRequest.setRequestHeader("Authorization", identityToken );
     addServerRequest.onreadystatechange = function() {
         if (addServerRequest.readyState == 4 && addServerRequest.status == 200) {
-            console.log("Server response to add request: " + addServerRequest.responseText);
+            console.log("Server response to add request:\n\"" + addServerRequest.responseText + "\"\n");
 
         }
     }
