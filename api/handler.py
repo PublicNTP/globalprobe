@@ -68,6 +68,7 @@ def _processServerAdd(logger, event):
 
     # Add the new server into our database of servers being monitored
 
+
     returnBody = "Processed server add request\n\tNew server FQDN: {0}\n".format(newServerFQDN) + \
         "\nResolved addresses:\n\t\tIPv4: {0}\n\t\tIPv6: {1}\n".format(
             pprint.pformat(newServerIpAddresses['ipv4']),

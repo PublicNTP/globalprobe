@@ -52,6 +52,8 @@ $ source venv/bin/activate
 $ serverless deploy
 ```
 
+Update these for the neat docker packaging
+
 
 ### Test API
 

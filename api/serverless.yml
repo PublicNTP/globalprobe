@@ -42,7 +42,7 @@ provider:
 functions:
   globalprobe-api:
     handler: handler.globalprobe_api
-    environment: ${file(rds_credentials.yml)}
+    environment: ${file(rds_connection_info.yml)}
     events: 
       - http:
          path: v1/server/add
@@ -62,3 +62,4 @@ resources:
         ResponseType: DEFAULT_4XX
         RestApiId:
           Ref: 'ApiGatewayRestApi'
+

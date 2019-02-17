@@ -18,8 +18,3 @@ var/
 
 # Serverless directories
 .serverless
-
-venv
-
-# Sensitive creds
-rds_credentials.yml
