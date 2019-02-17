@@ -27,6 +27,24 @@ function attemptServerAdd()
 
     console.log("New server hostname/IP: " + dnsHostnameOrIpAddress );
 
+    // Create add server POST and submit
+    const addServerRequest = new XMLHttpRequest();
+    const url='https://25zwa0yf5h.execute-api.us-east-2.amazonaws.com/dev/v1/server/add';
+    addServerRequest.open("POST", url, true);
+    addServerRequest.setRequestHeader("Content-type", "application/json");
+    addServerRequest.onreadystatechange = function() {
+        if (addServerRequest.readyState == 4 && addServerRequest.status == 200) {
+            console.log("Server response to add request: " + addServerRequest.responseText);
+
+        }
+    }
+
+    var bodyPayload = { 
+        "accessToken": getAccessToken(),
+        "serverAddress": dnsHostnameOrIpAddress 
+    }
+    addServerRequest.send(JSON.stringify(bodyPayload));
+
 }
 
 function addEventListeners()

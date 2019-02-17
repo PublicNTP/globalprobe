@@ -9,6 +9,10 @@ def _processServerAdd(event):
 
     return {
         "statusCode": 200,
+        'headers': {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*'
+        },
         "body": "Server add request\nAccess token: {0}\nServer address: {1}".format(accessToken, serverAddress)
     }
 
