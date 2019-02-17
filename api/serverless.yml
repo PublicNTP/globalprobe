@@ -42,6 +42,7 @@ provider:
 functions:
   globalprobe-api:
     handler: handler.globalprobe_api
+    environment: ${file(rds_credentials.yml)}
     events: 
       - http:
          path: v1/server/add
