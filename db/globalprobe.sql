@@ -20,5 +20,6 @@ CREATE TABLE server_addresses (
 );
 
 CREATE INDEX monitored_servers_owner_idx        ON monitored_servers (owner_cognito_id);
+CREATE INDEX monitored_servers_dns_name_idx     ON monitored_servers (dns_name);
 
 CREATE INDEX server_addresses_server_id_idx     ON server_addresses (server_id);
