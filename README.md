@@ -39,6 +39,11 @@ cp node_modules/amazon-cognito-identity-js/dist/amazon-cognito-identity.min.js .
 $ npm install -g serverless
 ```
 
+### Install Docker
+
+https://www.digitalocean.com/community/tutorials/how-to-install-and-use-docker-on-ubuntu-18-04
+
+
 ### Deploy API Lambda
 
 ```bash
