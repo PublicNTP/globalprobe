@@ -44,5 +44,5 @@ functions:
     events: 
       - http:
          path: v1/server/add
-         method: any
+         method: POST
          cors: true

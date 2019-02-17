@@ -2,10 +2,14 @@ import json
 
 
 def _processServerAdd(event):
+    bodyJson = json.loads(event['body'])
+
+    accessToken = bodyJson['accessToken']
+    serverAddress = bodyJson['serverAddress']
 
     return {
         "statusCode": 200,
-        "body": "Server add successful"
+        "body": "Server add request\nAccess token: {0}\nServer address: {1}".format(accessToken, serverAddress)
     }
 
 

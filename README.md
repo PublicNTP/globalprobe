@@ -43,6 +43,12 @@ $ source venv/bin/activate
 $ serverless deploy
 ```
 
+### Test API
+
+```bash
+$ curl -d "@/home/ubuntu/tmp/add_server.json" -X POST https://25zwa0yf5h.execute-api.us-east-2.amazonaws.com/dev/v1/server/add
+```
+
 
 ### Build S3 Bucket
 
