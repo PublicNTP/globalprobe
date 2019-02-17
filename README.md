@@ -16,6 +16,13 @@ Cheated and did host role with unlimited.
 
 Run TF script for AWS
 
+
+### Make sure we can talk to the RDS instance
+
+It defaulted to a security group that won't let the world talk to it
+
+
+
 ### Cognito JS library (actually already in JS package, but noting how to get new one)
 
 sudo apt-get -y install npm
@@ -23,6 +30,8 @@ mkdir -p ~/tmp/cognito
 cd ~/tmp/cognito
 npm install amazon-cognito-identity-js package
 cp node_modules/amazon-cognito-identity-js/dist/amazon-cognito-identity.min.js .../src/js/
+
+
 
 ### Serverless
 
@@ -43,26 +52,13 @@ $ source venv/bin/activate
 $ serverless deploy
 ```
 
+
 ### Test API
 
 ```bash
 $ curl -d "@/home/ubuntu/tmp/add_server.json" -X POST https://25zwa0yf5h.execute-api.us-east-2.amazonaws.com/dev/v1/server/add
 ```
 
-
-### Build S3 Bucket
-
-Run TF script for S3 static hosting
-
-### Build User Auth API
-
-Run Serverless stuff
-
-https://serverless.com/blog/serverless-python-packaging/
-
-### Build Stats Gather API
-
-Run Serverless stuff
 
 
 ## Legal

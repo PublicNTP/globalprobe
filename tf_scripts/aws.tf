@@ -1,3 +1,5 @@
+variable "db_password" {}
+
 provider "aws" {
     region = "us-east-2"
 }
@@ -89,3 +91,18 @@ resource "aws_s3_bucket_object" "dashboard-js" {
     content_type    = "text/javascript"
 }
 
+
+# RDS (Postgresql) instance
+resource "aws_db_instance" "globalprobe_db" {
+    allocated_storage           = 20      # 20GB is the min for RDS
+    storage_type                = "gp2"
+    engine                      = "postgres"
+    instance_class              = "db.t2.micro"
+    identifier                  = "globalprobe"                 # instance name
+    name                        = "globalprobe"                 # DB name
+    username                    = "globalprobe_admin"
+    password                    = "${var.db_password}"
+    publicly_accessible         = true
+    skip_final_snapshot         = true
+    final_snapshot_identifier   = "booya"
+}

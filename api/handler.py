@@ -49,7 +49,6 @@ def _resolveDnsName(logger, newServerFqdn):
                 logger.debug("Unsupported address type")
                 next
 
-
             addressList.append(socketAddress[0])
 
 
@@ -63,9 +62,11 @@ def _resolveDnsName(logger, newServerFqdn):
 def _processServerAdd(logger, event):
     bodyJson = json.loads(event['body'])
 
+    # Resolve all addresses for our new server
     newServerFQDN = bodyJson['new_server']['server_address']
-
     newServerIpAddresses = _resolveDnsName(logger, newServerFQDN)
+
+    # Add the new server into our database of servers being monitored
 
     returnBody = "Processed server add request\n\tNew server FQDN: {0}\n".format(newServerFQDN) + \
         "\nResolved addresses:\n\t\tIPv4: {0}\n\t\tIPv6: {1}\n".format(
