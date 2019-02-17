@@ -91,6 +91,27 @@ resource "aws_s3_bucket_object" "dashboard-js" {
     content_type    = "text/javascript"
 }
 
+# RDS instance security group
+resource "aws_security_group" "rds_security_group" {
+    name            = "PostgreSQL"
+    description     = "Allow network traffic from all hosts to PostgreSQL"
+    
+    ingress {
+        protocol            = "tcp"
+        cidr_blocks         = [ "0.0.0.0/0" ]
+        ipv6_cidr_blocks    = [ "::/0" ]
+        from_port           = 5432
+        to_port             = 5432
+    }
+
+    egress {
+        protocol            = -1
+        from_port           = 0
+        to_port             = 0
+        cidr_blocks         = [ "0.0.0.0/0" ]
+        ipv6_cidr_blocks    = [ "::/0" ] 
+    }
+}
 
 # RDS (Postgresql) instance
 resource "aws_db_instance" "globalprobe_db" {
@@ -105,4 +126,5 @@ resource "aws_db_instance" "globalprobe_db" {
     publicly_accessible         = true
     skip_final_snapshot         = true
     final_snapshot_identifier   = "booya"
+    vpc_security_group_ids      = [ "${aws_security_group.rds_security_group.id}" ]
 }
