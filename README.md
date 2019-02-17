@@ -24,6 +24,19 @@ cd ~/tmp/cognito
 npm install amazon-cognito-identity-js package
 cp node_modules/amazon-cognito-identity-js/dist/amazon-cognito-identity.min.js .../src/js/
 
+### Serverless
+
+```bash
+$ npm install -g serverless
+```
+
+### Deploy API Lambda
+
+```bash
+$ cd ~
+$ serverless create --template aws-python3 --name globalprobe-api --path ./api
+```
+
 
 ### Build S3 Bucket
 

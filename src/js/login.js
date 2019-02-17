@@ -1,4 +1,3 @@
-
 function attemptLogin()
 {
     console.log("Attempting login");
@@ -6,9 +5,10 @@ function attemptLogin()
     var submittedEmail = document.getElementById("input_email_address").value;
     var submittedPassword = document.getElementById("input_password").value;
 
+    /*
     console.log("Checking username = \"" + submittedEmail + 
         "\", password = \"" + submittedPassword + "\"");
-
+    */
 
     var authenticationData = {
         Username : submittedEmail,
@@ -35,30 +35,19 @@ function attemptLogin()
 
     cognitoUser.authenticateUser(authenticationDetails, {
         onSuccess: function (result) {
+
+            console.log("Successful login for user " + submittedEmail );
             var accessToken = result.getAccessToken().getJwtToken();
 
-            //POTENTIAL: Region needs to be set if not already set previously elsewhere.
-            AWS.config.region = 'us-east-2';
+            //console.log("Access token: " + accessToken);
 
-            AWS.config.credentials = new AWS.CognitoIdentityCredentials({
-                IdentityPoolId : 'us-east-2:8032efd3-ec81-452e-9e38-5120ec0d50b1',
-                Logins : {
-                    // Change the key below according to the specific region your user pool is in.
-                    'cognito-idp.us-east-2.amazonaws.com/us-east-2:8032efd3-ec81-452e-9e38-5120ec0d50b1' : 
-                        result.getIdToken().getJwtToken()
-                }
-            });
+            // Store access token as a cookie so we can access it after redirect
+            document.cookie = "accessToken=" + accessToken;
 
-            //refreshes credentials using AWS.CognitoIdentity.getCredentialsForIdentity()
-            AWS.config.credentials.refresh((error) => {
-                if (error) {
-                     console.error(error);
-                } else {
-                     // Instantiate aws sdk service objects now that the credentials have been updated.
-                     // example: var s3 = new AWS.S3();
-                     console.log('Successfully logged!');
-                }
-            });
+            // Bounce to main dashboard (server list) page
+            window.location.href = "/dashboard.html";
+
+
         },
 
         onFailure: function(err) {
@@ -80,7 +69,6 @@ function attemptLogin()
         }
 
     });
-
 
 }
 

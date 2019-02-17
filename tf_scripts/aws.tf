@@ -35,12 +35,6 @@ resource "aws_cognito_user_pool_client" "javascript_client" {
     user_pool_id    = "${aws_cognito_user_pool.globalprobe_user_pool.id}"
 }
 
-# Cognito Identity Pool
-resource "aws_cognito_identity_pool" "globalprobe_identity_pool" {
-    identity_pool_name                  = "globalprobe_identity_pool"
-    allow_unauthenticated_identities    = false
-}
-
 
 # S3 bucket for static web content
 resource "aws_s3_bucket" "static_web_content" {
@@ -78,3 +72,20 @@ resource "aws_s3_bucket_object" "login-js" {
     source          = "../src/js/login.js"
     content_type    = "text/javascript"
 }
+
+# Dashboard page
+resource "aws_s3_bucket_object" "dashboard_page" {
+    bucket          = "${aws_s3_bucket.static_web_content.id}"
+    key             = "dashboard.html"
+    source          = "../src/html/dashboard.html"
+    content_type    = "text/html"
+}
+
+# Dashboard JS
+resource "aws_s3_bucket_object" "dashboard-js" {
+    bucket          = "${aws_s3_bucket.static_web_content.id}"
+    key             = "js/dashboard.js"
+    source          = "../src/js/dashboard.js"
+    content_type    = "text/javascript"
+}
+

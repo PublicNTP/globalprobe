@@ -1,0 +1,57 @@
+<html>
+    <head>
+        <title>GlobalProbe - Dashboard</title>
+    </head>
+
+    <body>
+        <h1>GlobalProbe</h1>
+
+        <h2>Dashboard</h2>
+
+        <h3>Monitored NTP Servers</h3>
+        <p>You own these servers!</p>
+
+        <h3>Monitor New NTP Server</h3>
+        <table>
+
+            <tr>
+                <td>Server DNS name or IPv4/IPv6 Address:</td>
+                <td><input type="text" id="input_new_server_address"></td>
+                <td></td>
+            </tr>
+
+
+            <tr>
+                <td>Server identifier/name:</td>
+                <td><input type="text" id="input_new_server_id"></td>
+                <td>(optional)</td>
+            </tr>
+
+            <tr>
+                <td>Server description:</td>
+                <td><input type="text" id="input_new_server_description"></td>
+                <td>(optional)</td>
+            </tr>
+
+            <tr>
+                <td>Server location:</td>
+                <td><input type="text" id="input_new_server_location"></td>
+                <td>(optional)</td>
+            </tr>
+
+            <tr>
+                <td>Notes:</td>
+                <td><input type="textarea" id="input_new_server_notes"></td>
+                <td>(optional)</td>
+            </tr>
+
+            <tr>
+                <td></td>
+                <td><input type="button" value="Start Monitoring!" id="input_button_add_server"></td>
+            </tr>
+        </table>
+    </body>
+
+    <script src="js/dashboard.js"></script>
+
+</html>
