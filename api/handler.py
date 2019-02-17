@@ -1,7 +1,26 @@
 import json
 
 
-def hello(event, context):
+def _processServerAdd(event):
+
+    return {
+        "statusCode": 200,
+        "body": "Server add successful"
+    }
+
+
+def globalprobe_api(event, context):
+    
+    if event['path'] == '/v1/server/add':
+        response = _processServerAdd(event)
+
+    else:
+        response = {
+            "statusCode": 200,
+            "body": "Unknown operation"
+        }
+
+    """
     body = {
         "message": "Go Serverless v1.0! Your function executed successfully!",
         "input": event
@@ -11,14 +30,6 @@ def hello(event, context):
         "statusCode": 200,
         "body": json.dumps(body)
     }
+    """
 
     return response
-
-    # Use this code if you don't use the http event with the LAMBDA-PROXY
-    # integration
-    """
-    return {
-        "message": "Go Serverless v1.0! Your function executed successfully!",
-        "event": event
-    }
-    """

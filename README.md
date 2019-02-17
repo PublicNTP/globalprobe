@@ -35,6 +35,12 @@ $ npm install -g serverless
 ```bash
 $ cd ~
 $ serverless create --template aws-python3 --name globalprobe-api --path ./api
+$ cd api
+$ sudo apt-get -y install virtualenv
+$ virtualenv venv --python=python3
+$ source venv/bin/activate
+
+$ serverless deploy
 ```
 
 
