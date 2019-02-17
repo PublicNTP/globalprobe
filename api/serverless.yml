@@ -47,3 +47,17 @@ functions:
          path: v1/server/add
          method: POST
          cors: true
+         authorizer:
+            arn: arn:aws:cognito-idp:us-east-2:959720795291:userpool/us-east-2_QPz9qLkQL
+
+resources:
+  Resources:
+    GatewayResponseDefault4XX:
+      Type: 'AWS::ApiGateway::GatewayResponse'
+      Properties:
+        ResponseParameters:
+          gatewayresponse.header.Access-Control-Allow-Origin: "'*'"
+          gatewayresponse.header.Access-Control-Allow-Headers: "'*'"
+        ResponseType: DEFAULT_4XX
+        RestApiId:
+          Ref: 'ApiGatewayRestApi'

@@ -37,17 +37,19 @@ function attemptLogin()
         onSuccess: function (result) {
 
             console.log("Successful login for user " + submittedEmail );
+            /*
             var accessToken = result.getAccessToken().getJwtToken();
-
             //console.log("Access token: " + accessToken);
+            */
 
-            // Store access token as a cookie so we can access it after redirect
-            document.cookie = "accessToken=" + accessToken;
+            // ID token is passed in "Authorization" header for API gateway authorization
+            var idToken = result.idToken.jwtToken;
+
+            // Store ID token as cookies so we can access it after redirect
+            document.cookie = "idToken=" + idToken;
 
             // Bounce to main dashboard (server list) page
             window.location.href = "/dashboard.html";
-
-
         },
 
         onFailure: function(err) {

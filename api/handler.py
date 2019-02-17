@@ -4,8 +4,7 @@ import json
 def _processServerAdd(event):
     bodyJson = json.loads(event['body'])
 
-    accessToken = bodyJson['accessToken']
-    serverAddress = bodyJson['serverAddress']
+    serverAddress = bodyJson['new_server']['server_address']
 
     return {
         "statusCode": 200,
@@ -13,7 +12,7 @@ def _processServerAdd(event):
             'Content-Type': 'application/json',
             'Access-Control-Allow-Origin': '*'
         },
-        "body": "Server add request\nAccess token: {0}\nServer address: {1}".format(accessToken, serverAddress)
+        "body": "Server add request\nServer address: {1}".format(serverAddress)
     }
 
 
@@ -27,17 +26,5 @@ def globalprobe_api(event, context):
             "statusCode": 200,
             "body": "Unknown operation"
         }
-
-    """
-    body = {
-        "message": "Go Serverless v1.0! Your function executed successfully!",
-        "input": event
-    }
-
-    response = {
-        "statusCode": 200,
-        "body": json.dumps(body)
-    }
-    """
 
     return response
