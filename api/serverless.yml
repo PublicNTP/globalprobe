@@ -63,3 +63,10 @@ resources:
         RestApiId:
           Ref: 'ApiGatewayRestApi'
 
+
+plugins:
+  - serverless-python-requirements
+
+custom:
+  pythonRequirements:
+    dockerizePip: true

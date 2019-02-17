@@ -3,6 +3,8 @@ import socket
 import logging
 import pprint
 
+import psycopg2
+
 
 def _resolveDnsName(logger, newServerFqdn):
 
