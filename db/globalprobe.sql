@@ -1,13 +1,17 @@
-DROP INDEX IF EXISTS address_probe_attempts_time_sent_idx;
-DROP INDEX IF EXISTS address_probe_attempts_probe_id;
-DROP INDEX IF EXISTS address_probes_server_address_idx;
+DROP INDEX IF EXISTS service_probes_no_response_idx;
+DROP INDEX IF EXISTS service_probes_utc_offset_idx;
+DROP INDEX IF EXISTS service_probes_server_address_time_sent_idx;
 DROP INDEX IF EXISTS server_addresses_server_id_idx;
+DROP INDEX IF EXISTS monitored_servers_dns_name_idx;
 DROP INDEX IF EXISTS monitored_servers_owner_idx;
 
-DROP TABLE IF EXISTS address_probe_attempts;
-DROP TABLE IF EXISTS address_probes;
+DROP VIEW IF EXISTS sorted_utc_offsets;
+DROP VIEW IF EXISTS unanswered_probes;
+
+DROP TABLE IF EXISTS service_probes;
+DROP TABLE IF EXISTS probe_sites;
 DROP TABLE IF EXISTS server_addresses;
-DROP TABLE IF EXISTS monitored_servers;
+DROP TABLE IF EXISTS monitored_servers; 
 
 CREATE TABLE monitored_servers (
     server_id               bigserial                   PRIMARY KEY,
@@ -25,29 +29,44 @@ CREATE TABLE server_addresses (
     address                 inet                        NOT NULL UNIQUE
 );
 
-CREATE TABLE address_probes (
-    probe_id                bigserial                   PRIMARY KEY,
-    server_address          bigint                      REFERENCES server_addresses ON DELETE CASCADE NOT NULL 
+CREATE TABLE probe_sites (
+    probe_site_id           serial                      PRIMARY KEY,
+    site_location_id        varchar                     NOT NULL UNIQUE
 );
 
-CREATE TABLE address_probe_attempts (
+CREATE TABLE service_probes (
     probe_attempt_id        bigserial                   PRIMARY KEY,
-    probe_id                bigint                      REFERENCES address_probes (probe_id) ON DELETE CASCADE NOT NULL,
-    attempt_number          integer                     NOT NULL,
+    probe_site_id           integer                     REFERENCES probe_sites (probe_site_id) ON DELETE CASCADE NOT NULL,
+    server_address          bigint                      REFERENCES server_addresses (server_address_id) ON DELETE CASCADE NOT NULL,
     time_request_sent       timestamp with time zone    NOT NULL,
     time_response_received  timestamp with time zone,
+    round_trip_time         interval,
     estimated_utc_offset    interval
 );
 
+CREATE VIEW unanswered_probes AS
+SELECT owner_cognito_id, dns_name, address, time_request_sent
+FROM monitored_servers 
+JOIN server_addresses ON monitored_servers.server_id = server_addresses.server_id 
+JOIN service_probes ON server_addresses.server_address_id = service_probes.server_address 
+WHERE time_response_received IS NULL 
+ORDER BY owner_cognito_id, dns_name, time_request_sent, address;
+
+CREATE VIEW sorted_utc_offsets AS
+SELECT owner_cognito_id, dns_name, address, time_request_sent, estimated_utc_offset
+FROM monitored_servers
+JOIN server_addresses ON monitored_servers.server_id = server_addresses.server_id
+JOIN service_probes ON server_addresses.server_address_id = service_probes.server_address
+ORDER BY owner_cognito_id, estimated_utc_offset, dns_name, address, time_request_sent;
 
 
-CREATE INDEX monitored_servers_owner_idx                ON monitored_servers (owner_cognito_id);
-CREATE INDEX monitored_servers_dns_name_idx             ON monitored_servers (dns_name);
+CREATE INDEX monitored_servers_owner_idx                    ON monitored_servers (owner_cognito_id);
+CREATE INDEX monitored_servers_dns_name_idx                 ON monitored_servers (dns_name);
 
-CREATE INDEX server_addresses_server_id_idx             ON server_addresses (server_id);
+CREATE INDEX server_addresses_server_id_idx                 ON server_addresses (server_id);
 
-CREATE INDEX address_probes_server_address_idx          ON address_probes (server_address);
+CREATE INDEX probe_sites_location_idx                       ON probe_sites (site_location_id);
 
-CREATE INDEX address_probe_attempts_probe_id            ON address_probe_attempts (probe_id);
-
-CREATE INDEX address_probe_attempts_time_sent_idx       ON address_probe_attempts (probe_id, time_request_sent);
+CREATE INDEX service_probes_server_address_time_sent_idx    ON service_probes (server_address, time_request_sent);
+CREATE INDEX service_probes_no_response_idx                 ON service_probes (server_address, time_response_received);
+CREATE INDEX service_probes_utc_offset_idx                  ON service_probes (server_address, estimated_utc_offset);
