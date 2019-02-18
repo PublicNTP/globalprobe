@@ -53,7 +53,24 @@ VALUES
         '2019-01-01 01:02:10.456789+00',
         (SELECT timestamp '2019-01-01 01:02:10.456789+00' - timestamp '2019-01-01 01:02:09.123456+00'),
         '0.013 seconds'
-    );
+    ),
 
+    (
+        (SELECT probe_site_id FROM probe_sites WHERE site_location_id = 'gru01' ),
+        (SELECT server_address_id FROM server_addresses WHERE address = '2406:da1a:200:7201:d9ea:9ac5:32e3:339c' ),
+        '2019-01-02 03:05:09.123456+00',
+        null,
+        null,
+        null
+    ),
 
+    (
+        (SELECT probe_site_id FROM probe_sites WHERE site_location_id = 'fra01' ),
+        (SELECT server_address_id FROM server_addresses WHERE address = '2406:da18:abd:d700:4fef:14aa:9534:95db'),
+        '2019-01-15 05:15:09.123456+00',
+        '2019-01-15 05:15:10.456789+00',
+        (SELECT timestamp '2019-01-15 05:15:10.456789+00' - timestamp '2019-01-15 05:15:09.123456+00'),
+        '0.147 seconds'
+    )
 
+;

@@ -1,5 +1,5 @@
-DROP INDEX IF EXISTS service_probes_no_response_idx;
 DROP INDEX IF EXISTS service_probes_utc_offset_idx;
+DROP INDEX IF EXISTS service_probes_response_received_idx
 DROP INDEX IF EXISTS service_probes_server_address_time_sent_idx;
 DROP INDEX IF EXISTS server_addresses_server_id_idx;
 DROP INDEX IF EXISTS monitored_servers_dns_name_idx;
@@ -45,18 +45,20 @@ CREATE TABLE service_probes (
 );
 
 CREATE VIEW unanswered_probes AS
-SELECT owner_cognito_id, dns_name, address, time_request_sent
+SELECT owner_cognito_id AS server_owner, site_location_id AS probe_site, dns_name, address, time_request_sent
 FROM monitored_servers 
 JOIN server_addresses ON monitored_servers.server_id = server_addresses.server_id 
 JOIN service_probes ON server_addresses.server_address_id = service_probes.server_address 
+JOIN probe_sites ON service_probes.probe_site_id = probe_sites.probe_site_id
 WHERE time_response_received IS NULL 
 ORDER BY owner_cognito_id, dns_name, time_request_sent, address;
 
 CREATE VIEW sorted_utc_offsets AS
-SELECT owner_cognito_id, dns_name, address, time_request_sent, estimated_utc_offset
+SELECT owner_cognito_id AS server_owner, site_location_id AS probe_site, dns_name, address, time_request_sent, estimated_utc_offset
 FROM monitored_servers
 JOIN server_addresses ON monitored_servers.server_id = server_addresses.server_id
 JOIN service_probes ON server_addresses.server_address_id = service_probes.server_address
+JOIN probe_sites ON service_probes.probe_site_id = probe_sites.probe_site_id
 ORDER BY owner_cognito_id, estimated_utc_offset, dns_name, address, time_request_sent;
 
 
@@ -68,5 +70,5 @@ CREATE INDEX server_addresses_server_id_idx                 ON server_addresses 
 CREATE INDEX probe_sites_location_idx                       ON probe_sites (site_location_id);
 
 CREATE INDEX service_probes_server_address_time_sent_idx    ON service_probes (server_address, time_request_sent);
-CREATE INDEX service_probes_no_response_idx                 ON service_probes (server_address, time_response_received);
+CREATE INDEX service_probes_response_received_idx           ON service_probes (time_response_received);
 CREATE INDEX service_probes_utc_offset_idx                  ON service_probes (server_address, estimated_utc_offset);
