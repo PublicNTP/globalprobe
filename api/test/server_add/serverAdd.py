@@ -22,9 +22,17 @@ def _getNewServerData():
 
     return serversToAdd
 
+def _getIdentityToken():
+    pass
+
+
+def _logoutOfApi(identityToken):
+    pass
 
 def _addServer(serverDetails):
-    pass
+    identityToken = _getIdentityToken()
+
+    _logoutOfApi(identityToken)
 
 
 def _addNewServers(serversToAdd):
