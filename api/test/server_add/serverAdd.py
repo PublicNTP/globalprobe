@@ -1,3 +1,5 @@
+#!/usr/bin/python3
+
 import boto3
 import logging
 import os
@@ -8,8 +10,18 @@ import requests
 import psycopg2
 
 
-def _clearTestData():
-    pass
+def _clearTestData(logger, dbConnection, dbCursor ):
+
+    try:
+
+        dbCursor.execute(
+            "DELETE FROM monitored_servers WHERE dns_name LIKE '%.globalprobe.dev.publicntp.org';" )
+
+        dbConnection.commit()
+
+    except Exception as e:
+        logger.error("Could not clear test data: {0}".format(e))
+        sys.exit()
 
 
 def _validateServerAddedCorrectly(logger, serverData, dbCursor):
@@ -25,31 +37,81 @@ def _validateServerAddedCorrectly(logger, serverData, dbCursor):
             (serverData['server_address'],)
         )
 
-        results = dbCursor.fetchall()[0]
+        results = dbCursor.fetchall()
 
-        if results[1] == serverData['server_address']:
-            logger.info("Confirmed that server \"{0}\" is now in the backend SQL database".format(
+        if len(results) == 0:
+            logger.error("Did not find any rows for server \"{0}\" in backend SQL database".format(
                 serverData['server_address']) )
+            sys.exit()
+
+        addressesFound = []
+
+        for currRow in results:
+
+            if currRow[2] != serverData['display_name']:
+                logger.error("Invalid display name in results row {0} for server {1}".format(
+                    pprint.pformat(currRow), serverData['server_address']) )
+                sys.exit()
+
+            if currRow[3] != serverData['display_description']:
+                logger.error("Invalid display description in results row {0} for server {1}".format(
+                    pprint.pformat(currRow), serverData['server_address']) )
+                sys.exit()
 
 
-        #logger.info("Results:\n{0}\n".format(pprint.pformat(results)))
+            if currRow[4] != serverData['display_location']:
+                logger.error("Invalid display location in results row {0} for server {1}".format(
+                    pprint.pformat(currRow), serverData['server_address']) )
+                sys.exit()
+
+            if currRow[5] != serverData['notes']:
+                logger.error("Invalid display notes in results row {0} for server {1}".format(
+                    pprint.pformat(currRow), serverData['server_address']) )
+                sys.exit()
+
+            addressesFound.append( currRow[6] )
+
+        
+        # If sorted, double equals test should work
+        addressesFound.sort()
+        serverData['server_addresses'].sort()
+        if addressesFound != serverData['server_addresses']:
+            logger.error("Addresses found {0} does not match expected addresses {1}".format(
+                pprint.pformat(addressesFound), pprint.pformat(serverData['server_address'])) )
+
+            sys.exit()
+        else:
+            logger.info("Found all expected addresses: {0}".format(pprint.pformat(serverData['server_addresses'])))
+
+
+        logger.info("Unit test passed for {0}".format(serverData['server_address']))
 
     except Exception as e:
-        logger.error("Something went boom in validation")
+        logger.error("Something went boom in validation. {0}".format(e))
         sys.exit()
 
 
 
 def _getNewServerData():
+    ownerUuid = '3665f15f-36d8-42d4-b531-aa9284126bfe'
 
     serversToAdd = [
         {
-            'server_address'        : 'server1.unittest',
-            'display_name'          : 'DisplayName for server1.unittest',
-            'display_description'   : 'Description for server1.unittest',
-            'display_location'      : 'Locaiton for server1.unittest',
-            'notes'                 : 'Notes for server1.unittest'
-        }
+            'server_address'        : 'unittest2.globalprobe.dev.publicntp.org',
+            'owner_id'              : ownerUuid,
+            'display_name'          : 'Unit Test 2',
+            'display_description'   : 'Do some testing',
+            'display_location'      : 'Does not exist',
+            'notes'                 : 'Notes for testing',
+
+            'server_addresses'      : [
+                                        '127.1.2.3',
+                                        '127.2.3.4',
+                                        '::1'
+                                    ]
+        },
+
+
     ]
 
     return serversToAdd
@@ -134,7 +196,24 @@ def _addServer(logger, serverDetails):
     _cognitoLogout(cognitoTokens)
 
 
-def _addNewServers(logger, serversToAdd):
+def _addNewServers(logger, serversToAdd, dbCursor):
+
+    try:
+        logger.info("We have {0} servers to add".format(len(serversToAdd)) )
+        for currServer in serversToAdd:
+            _addServer(logger, currServer)
+            _validateServerAddedCorrectly(logger, currServer, dbCursor)
+
+
+    except Exception as e:
+        logger.error("Something blowed up: {0}".format(e))
+        sys.exit()
+
+
+   
+
+def main(logger):
+    newServers = _getNewServerData()
 
     dbDetails = {
         'db_name': os.environ['GLOBALPROBE_DBNAME'],
@@ -152,25 +231,12 @@ def _addNewServers(logger, serversToAdd):
             )
         ) as dbConnection:
             with dbConnection.cursor() as dbCursor:
-                logger.info("We have {0} servers to add".format(len(serversToAdd)) )
-                for currServer in serversToAdd:
-                    _addServer(logger, currServer)
-                    _validateServerAddedCorrectly(logger, currServer, dbCursor)
-
-
+                _clearTestData(logger, dbConnection, dbCursor)
+                _addNewServers(logger, newServers, dbCursor )
+                _clearTestData(logger, dbConnection, dbCursor)
     except Exception as e:
-        logger.error("Something blowed up: {0}".format(e))
+        logger.error("Boom: {0}".format(e))
         sys.exit()
-
-
-   
-
-def main(logger):
-    newServers = _getNewServerData()
-
-    _clearTestData()
-
-    _addNewServers(logger, newServers)
 
 
 if __name__ == "__main__":

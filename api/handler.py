@@ -60,7 +60,8 @@ def _resolveDnsName(logger, newServerFqdn):
     return resolvedAddresses
 
 
-def _addDatabaseEntry(logger, serverFqdn, serverAddresses):
+def _addDatabaseEntry(logger, ownerUuid, serverFqdn, serverName, serverDescription, serverLocation, 
+        serverNotes, serverAddresses):
    
     dbDetails = {
         'db_host'       : os.environ['db_host'],
@@ -69,16 +70,14 @@ def _addDatabaseEntry(logger, serverFqdn, serverAddresses):
         'db_name'       : 'globalprobe'
     }
 
+    """
     logger.debug("DB info:\n\tHost: {0}\n\tUser: {1}\n\tPassword: {2}\n\tUser: {3}".format(
         dbDetails['db_host'],
         dbDetails['db_user'],
         dbDetails['db_passwd'],
         dbDetails['db_name']) 
     )
-
-    # Need owner's UUID -- Cognito, how do we get this?
-    ownerUuid = '3665f15f-36d8-42d4-b531-aa9284126bfe'
-   
+    """
 
     try:
         with psycopg2.connect("dbname='{0}' user='{1}' host='{2}' password='{3}'".format(
@@ -91,10 +90,12 @@ def _addDatabaseEntry(logger, serverFqdn, serverAddresses):
             with dbConnection.cursor() as dbCursor:
 
                 # Add server
-                dbCursor.execute( "INSERT INTO monitored_servers (owner_cognito_id, dns_name) " + 
-                    "VALUES (%s, %s) " +
+                dbCursor.execute( 
+                    "INSERT INTO monitored_servers " +
+                        "(owner_cognito_id, dns_name, display_name, display_description, display_location, notes) " + 
+                    "VALUES (%s, %s, %s, %s, %s, %s) " +
                     "RETURNING server_id;",
-                    (ownerUuid, serverFqdn) )
+                    (ownerUuid, serverFqdn, serverName, serverDescription, serverLocation, serverNotes) )
 
                 # Get the new server ID back out
                 newServerId = dbCursor.fetchone()[0]
@@ -112,19 +113,28 @@ def _addDatabaseEntry(logger, serverFqdn, serverAddresses):
                 
                 # We're in a transaction, so commit it before we close and lose it
                 dbConnection.commit()
-    except:
-        logger.error("Exception of unknown type thrown during DB add")
+    except Exception as e:
+        logger.error("Exception of unknown type thrown during DB add: {0}".format(e))
 
 
 def _processServerAdd(logger, event):
     bodyJson = json.loads(event['body'])
 
+    # User adding the server
+    newServerOwnerCognitoId = bodyJson['new_server']['owner_id']
+
     # Resolve all addresses for our new server
     newServerFQDN = bodyJson['new_server']['server_address']
     newServerIpAddresses = _resolveDnsName(logger, newServerFQDN)
 
+    newServerName = bodyJson['new_server']['display_name']
+    newServerDescription = bodyJson['new_server']['display_description']
+    newServerLocation = bodyJson['new_server']['display_location']
+    newServerNotes = bodyJson['new_server']['notes']
+
     # Add the new server into our database of servers being monitored
-    _addDatabaseEntry(logger, newServerFQDN, newServerIpAddresses)
+    _addDatabaseEntry(logger, newServerOwnerCognitoId, newServerFQDN, newServerName,
+        newServerDescription, newServerLocation, newServerNotes, newServerIpAddresses)
 
     returnBody = "Processed server add request\n\tNew server FQDN: {0}\n".format(newServerFQDN) + \
         "\nResolved addresses:\n\t\tIPv4: {0}\n\t\tIPv6: {1}\n".format(
