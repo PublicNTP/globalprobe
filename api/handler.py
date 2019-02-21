@@ -4,6 +4,7 @@ import logging
 import pprint
 import os
 import psycopg2
+import re
 
 
 def _resolveDnsName(logger, newServerFqdn):
@@ -151,6 +152,50 @@ def _processServerAdd(logger, event):
         "body": returnBody
     }
 
+
+def _processServerDelete(logger, serverToDelete):
+    logger.info("Trying to delete server {0}".format(
+        pprint.pformat(serverToDelete)) )
+
+
+    dbDetails = {
+        'db_host'       : os.environ['db_host'],
+        'db_user'       : os.environ['db_user'],
+        'db_passwd'     : os.environ['db_passwd'],
+        'db_name'       : 'globalprobe'
+    }
+
+    try:
+        with psycopg2.connect("dbname='{0}' user='{1}' host='{2}' password='{3}'".format(
+                dbDetails['db_name'],
+                dbDetails['db_user'],
+                dbDetails['db_host'],
+                dbDetails['db_passwd']
+            )
+        ) as dbConnection:
+            with dbConnection.cursor() as dbCursor:
+
+                # Add server
+                dbCursor.execute( "DELETE FROM monitored_servers WHERE dns_name = %s;",
+                    (serverToDelete, ) )
+
+                dbConnection.commit()
+
+    except Exception as e:
+        logger.error("Exception thrown in delete: {0}".format(e) )
+        
+          
+
+    return {
+        "statusCode": 200,
+        'headers': {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*'
+        },
+        "body": "Deleted server \"{0}\"".format(serverToDelete)
+    }
+
+
 def _createLogger():
 
     logger = logging.getLogger()
@@ -166,8 +211,26 @@ def globalprobe_api(event, context):
     if event['path'] == '/v1/server/add':
         response = _processServerAdd(logger, event)
 
+    if event['httpMethod'] == 'DELETE':
+        result = re.match('\/v1/server\/(.+)', event['path'])
+
+        if result is not None:
+            serverToDelete = result.group(1)
+            response = _processServerDelete(logger, serverToDelete)
+        else:
+            response = {
+                "statusCode": 404,
+                'headers': {
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '*'
+                },
+                "body": "Could not delete server {0}".format(event['path'])
+
+            }
+
     else:
         logger.warn("Invalid path: {0}".format(event['path']) )
+        logger.warn( "Event: {0}".format(pprint.pformat(event)) )
 
         response = {
             "statusCode": 200,

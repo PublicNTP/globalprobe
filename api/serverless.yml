@@ -45,8 +45,8 @@ functions:
     environment: ${file(rds_connection_info.yml)}
     events: 
       - http:
-         path: v1/server/add
-         method: POST
+         path: v1/{proxy+}
+         method: ANY
          cors: true
          authorizer:
             arn: arn:aws:cognito-idp:us-east-2:959720795291:userpool/us-east-2_QPz9qLkQL
