@@ -193,7 +193,7 @@ def main(logger):
                 _clearTestData(logger, dbConnection, dbCursor)
                 _addServersToSql(logger, newServers, dbConnection, dbCursor )
                 _attemptDeletes(logger, newServers, dbConnection, dbCursor)
-                #_clearTestData(logger, dbConnection, dbCursor)
+                _clearTestData(logger, dbConnection, dbCursor)
     except Exception as e:
         logger.error("Boom: {0}".format(e))
         sys.exit()
