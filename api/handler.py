@@ -196,6 +196,80 @@ def _processServerDelete(logger, serverToDelete):
     }
 
 
+def _processServerList(logger, event):
+    # Need the UUID for this user
+
+    #uuid = event['requestContext']['authorizer']['claims']['cognito:username']
+
+    requestContext      = event['requestContext']
+    authorizer          = requestContext['authorizer']
+    claims              = authorizer['claims']
+    cognitoUsername     = claims['cognito:username']
+
+    dbDetails = {
+        'db_host'       : os.environ['db_host'],
+        'db_user'       : os.environ['db_user'],
+        'db_passwd'     : os.environ['db_passwd'],
+        'db_name'       : 'globalprobe'
+    }
+
+    serverList = {}
+
+    try:
+        with psycopg2.connect("dbname='{0}' user='{1}' host='{2}' password='{3}'".format(
+                dbDetails['db_name'],
+                dbDetails['db_user'],
+                dbDetails['db_host'],
+                dbDetails['db_passwd']
+            )
+        ) as dbConnection:
+            with dbConnection.cursor() as dbCursor:
+
+                # List all servers for the given user ID
+
+                dbCursor.execute( 
+                    "SELECT dns_name, display_name, display_description, display_location, " +
+                            "notes, address " +
+                    "FROM monitored_servers " +
+                    "JOIN server_addresses " + 
+                    "ON monitored_servers.server_id = server_addresses.server_id " +
+                    "WHERE owner_cognito_id = %s " +
+                    "ORDER BY dns_name, address;",
+
+                    (cognitoUsername, ) )
+
+                listResults = dbCursor.fetchall()
+
+
+                for currResult in listResults:
+                    if currResult[0] not in serverList:
+                        serverList[ currResult[0] ] = {
+                            'display_name'          : currResult[1],
+                            'display_description'   : currResult[2],
+                            'display_location'      : currResult[3],
+                            'notes'                 : currResult[4],
+                            'server_addresses'      : []
+                        }
+
+                    serverList[ currResult[0] ][ 'server_addresses' ].append(currResult[5] )
+
+
+
+    except Exception as e:
+        logger.error("Exception thrown in list: {0}".format(e) )
+
+
+
+    return {
+        "statusCode": 200,
+        'headers': {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*'
+        },
+        "body": json.dumps( { 'servers': serverList } )
+    }
+
+
 def _createLogger():
 
     logger = logging.getLogger()
@@ -208,10 +282,13 @@ def globalprobe_api(event, context):
 
     logger = _createLogger() 
     
-    if event['path'] == '/v1/server/add':
+    if event['httpMethod'] == 'POST' and event['path'] == '/v1/server':
+        logger.info("Entry to add")
         response = _processServerAdd(logger, event)
 
-    if event['httpMethod'] == 'DELETE':
+    # TODO: refactor this to do the RE in the function
+    elif event['httpMethod'] == 'DELETE':
+        logger.info("Entry to delete")
         result = re.match('\/v1/server\/(.+)', event['path'])
 
         if result is not None:
@@ -227,6 +304,11 @@ def globalprobe_api(event, context):
                 "body": "Could not delete server {0}".format(event['path'])
 
             }
+
+    elif event['httpMethod'] == 'GET' and event['path'] == '/v1/server/list':
+        logger.info("Entry to list")
+        response = _processServerList(logger, event)
+    
 
     else:
         logger.warn("Invalid path: {0}".format(event['path']) )

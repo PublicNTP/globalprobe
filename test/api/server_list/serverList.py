@@ -11,23 +11,31 @@ import psycopg2
 
 
 
-def _attemptDeletes(logger, newServers, dbConnection, dbCursor):
+def _attemptServerList(logger, newServers, dbConnection, dbCursor):
 
-    removeServerEndpoint = "https://25zwa0yf5h.execute-api.us-east-2.amazonaws.com/dev/v1/server"
+    listServersEndpoint = "https://25zwa0yf5h.execute-api.us-east-2.amazonaws.com/dev/v1/server/list"
 
     for currServer in newServers:
         cognitoTokens = _getCognitoUserTokens()
-        deleteHeaders = {
+        authHeaders = {
             "Authorization": cognitoTokens['identity']
         }
 
-        deleteAttempt = requests.delete( "{0}/{1}".format(removeServerEndpoint,
-            currServer['server_address']), headers=deleteHeaders)
+        listAttempt = requests.get( listServersEndpoint, headers=authHeaders)
 
-        if deleteAttempt.status_code == 200:
-            logger.info("API claims it deleted server \"{0}\"".format(currServer['server_address']) )
+        if listAttempt.status_code == 200:
+            logger.info("API claims it listed servers" )
+
+            #returnedBody = listAttempt.json()
+            returnedText = listAttempt.text
+
+            logger.info(returnedText)
+            #logger.info(returnedBody)
+
         else:
-            logger.error("Could not delete server \"{0}\"".format(currServer['server_address']))
+            logger.error("Could not list servers")
+
+
 
 
         _cognitoLogout(cognitoTokens)
@@ -190,10 +198,12 @@ def main(logger):
             )
         ) as dbConnection:
             with dbConnection.cursor() as dbCursor:
-                _clearTestData(logger, dbConnection, dbCursor)
-                _addServersToSql(logger, newServers, dbConnection, dbCursor )
-                _attemptDeletes(logger, newServers, dbConnection, dbCursor)
-                _clearTestData(logger, dbConnection, dbCursor)
+                #_clearTestData(logger, dbConnection, dbCursor)
+                #_addServersToSql(logger, newServers, dbConnection, dbCursor )
+                _attemptServerList(logger, newServers, dbConnection, dbCursor)
+                #_clearTestData(logger, dbConnection, dbCursor)
+
+                
     except Exception as e:
         logger.error("Boom: {0}".format(e))
         sys.exit()
