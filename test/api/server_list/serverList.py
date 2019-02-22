@@ -26,11 +26,26 @@ def _attemptServerList(logger, newServers, dbConnection, dbCursor):
         if listAttempt.status_code == 200:
             logger.info("API claims it listed servers" )
 
-            #returnedBody = listAttempt.json()
-            returnedText = listAttempt.text
+            returnedBody = listAttempt.json()
+            apiServers = returnedBody['servers']
 
-            logger.info(returnedText)
-            #logger.info(returnedBody)
+            for checkServerName in newServers:
+                checkServer = newServers[checkServerName]
+                checkServer['server_addresses'].sort()
+                if checkServerName not in apiServers:
+                    logger.error("Did not find test server {0}".format(checkServerName))
+                    sys.exit()
+
+                currRecord = apiServers[checkServerName]
+
+                if currRecord != checkServer:
+                    logger.error("Fields did not match for {0}".format(currServer))
+                    logger.error("currRecord = {0}".format(pprint.pformat(currRecord)))
+                    logger.error("check server = {0}".format(pprint.pformat(checkServer)))
+                    sys.exit()
+
+
+            logger.info("Test passed!")
 
         else:
             logger.error("Could not list servers")
@@ -60,26 +75,19 @@ def _clearTestData(logger, dbConnection, dbCursor ):
 
 
 def _getNewServerData():
-    ownerUuid = '3665f15f-36d8-42d4-b531-aa9284126bfe'
-
-    serversToAdd = [
-        {
-            'server_address'        : 'unittest-delete.globalprobe.dev.publicntp.org',
-            'owner_id'              : ownerUuid,
-            'display_name'          : 'Unit Test Delete',
+    serversToAdd = {
+        'unittest-list.globalprobe.dev.publicntp.org': {
+            'display_name'          : 'Unit Test List',
             'display_description'   : 'I think we are supposed to test',
             'display_location'      : 'Right, testing sounds good',
             'notes'                 : 'Kick that testing in the tail',
-
             'server_addresses'      : [
-                                        '127.9.9.9',
-                                        '127.9.8.7',
-                                        '::1'
-                                    ]
-        },
-
-
-    ]
+                '127.9.9.9',
+                '127.9.8.7',
+                '::1'
+            ]
+        }
+    }
 
     return serversToAdd
 
@@ -134,14 +142,16 @@ def _getCognitoUserTokens():
 def _cognitoLogout(cognitoLogin):
     pass
 
-def _addServerToSql(logger, serverDetails, dbConnection, dbCursor):
+def _addServerToSql(logger, serverName, serverDetails, dbConnection, dbCursor):
+    ownerUuid = '3665f15f-36d8-42d4-b531-aa9284126bfe'
+
     try:
         dbCursor.execute(
             "INSERT INTO monitored_servers (owner_cognito_id, dns_name, display_name, display_description, display_location, notes)" +
             "VALUES (%s, %s, %s, %s, %s, %s) " +
             "RETURNING server_id;",
 
-            (serverDetails['owner_id'], serverDetails['server_address'],
+            (ownerUuid, serverName,
              serverDetails['display_name'], serverDetails['display_description'], 
              serverDetails['display_location'], serverDetails['notes']) )
 
@@ -159,7 +169,7 @@ def _addServerToSql(logger, serverDetails, dbConnection, dbCursor):
         #logger.info("Added {0}".format(serverDetails['server_address']))
 
     except Exception as e:
-        logger.error("Could not add server we're going to delete: {0}".format(e))
+        logger.error("Could not add server we're going to list: {0}".format(e))
         sys.exit()
 
 
@@ -168,8 +178,9 @@ def _addServersToSql(logger, serversToAdd, dbConnection, dbCursor):
 
     try:
         logger.info("We have {0} servers to add".format(len(serversToAdd)) )
-        for currServer in serversToAdd:
-            _addServerToSql(logger, currServer, dbConnection, dbCursor)
+        for currServerName in serversToAdd:
+            currServer = serversToAdd[currServerName]
+            _addServerToSql(logger, currServerName, currServer, dbConnection, dbCursor)
 
 
     except Exception as e:
@@ -198,10 +209,10 @@ def main(logger):
             )
         ) as dbConnection:
             with dbConnection.cursor() as dbCursor:
-                #_clearTestData(logger, dbConnection, dbCursor)
-                #_addServersToSql(logger, newServers, dbConnection, dbCursor )
+                _clearTestData(logger, dbConnection, dbCursor)
+                _addServersToSql(logger, newServers, dbConnection, dbCursor )
                 _attemptServerList(logger, newServers, dbConnection, dbCursor)
-                #_clearTestData(logger, dbConnection, dbCursor)
+                _clearTestData(logger, dbConnection, dbCursor)
 
                 
     except Exception as e:
