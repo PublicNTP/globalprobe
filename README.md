@@ -25,13 +25,13 @@ It defaulted to a security group that won't let the world talk to it
 
 ### Cognito JS library (actually already in JS package, but noting how to get new one)
 
-sudo apt-get -y install npm
-mkdir -p ~/tmp/cognito
-cd ~/tmp/cognito
-npm install amazon-cognito-identity-js package
-cp node_modules/amazon-cognito-identity-js/dist/amazon-cognito-identity.min.js .../src/js/
-
-
+```bash
+$ sudo apt-get -y install npm
+$ mkdir -p ~/tmp/cognito
+$ cd ~/tmp/cognito
+$ npm install amazon-cognito-identity-js package
+$ cp node_modules/amazon-cognito-identity-js/dist/amazon-cognito-identity.min.js .../src/js/
+```
 
 ### Serverless
 
