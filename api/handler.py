@@ -185,10 +185,7 @@ def _processServerDelete(logger, serverToDelete):
 
 
 def _processServerList(logger, event):
-    # Need the UUID for this user
-
     cognitoUsername     = _getCognitoUsername(event)
-
     serverList = {}
 
     try:
@@ -209,7 +206,6 @@ def _processServerList(logger, event):
 
                 listResults = dbCursor.fetchall()
 
-
                 for currResult in listResults:
                     if currResult[0] not in serverList:
                         serverList[ currResult[0] ] = {
@@ -222,12 +218,8 @@ def _processServerList(logger, event):
 
                     serverList[ currResult[0] ][ 'server_addresses' ].append(currResult[5] )
 
-
-
     except Exception as e:
         logger.error("Exception thrown in list: {0}".format(e) )
-
-
 
     return {
         "statusCode": 200,
@@ -237,6 +229,19 @@ def _processServerList(logger, event):
         },
         "body": json.dumps( { 'servers': serverList } )
     }
+
+
+def _processServerHistory(logger, event):
+    return {
+        "statusCode": 200,
+        'headers': {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*'
+        },
+        "body": json.dumps( { 'server_history': None } )
+    }
+
+
 
 
 def _createLogger():
@@ -277,6 +282,11 @@ def globalprobe_api(event, context):
     elif event['httpMethod'] == 'GET' and event['path'] == '/v1/server/list':
         logger.info("Entry to list")
         response = _processServerList(logger, event)
+
+
+    elif event['httpMethod'] == 'GET' and event['path'].startsWith('/v1/server/history'):
+        logger.info("Checking server history")
+        response = _processServerHistory(logger, event)
     
 
     else:
