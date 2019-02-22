@@ -23,11 +23,11 @@ def _connectToDB( ):
         'db_name'       : 'globalprobe'
     }
 
-    return psycopg2.connect("dbname='{0}' user='{1}' host='{2}' password='{3}'".format(
+    return psycopg2.connect("dbname='{0}' user='{1}' host='{2}' password='{3}'".format( 
         dbDetails['db_name'],
         dbDetails['db_user'],
         dbDetails['db_host'],
-        dbDetails['db_passwd']
+        dbDetails['db_passwd'])
     )
 
 
@@ -90,7 +90,7 @@ def _addDatabaseEntry(logger, ownerUuid, serverFqdn, serverName, serverDescripti
         serverNotes, serverAddresses):
    
     try:
-        with _connectToDb() as dbConnection:
+        with _connectToDB() as dbConnection:
             with dbConnection.cursor() as dbCursor:
 
                 # Add server
@@ -161,7 +161,7 @@ def _processServerDelete(logger, serverToDelete):
         pprint.pformat(serverToDelete)) )
 
     try:
-        _connectToDb() as dbConnection:
+        with _connectToDB() as dbConnection:
             with dbConnection.cursor() as dbCursor:
                 # Add server
                 dbCursor.execute( "DELETE FROM monitored_servers WHERE dns_name = %s;",
@@ -189,7 +189,7 @@ def _processServerList(logger, event):
     serverList = {}
 
     try:
-        with _connectToDb() as dbConnection:
+        with _connectToDB() as dbConnection:
             with dbConnection.cursor() as dbCursor:
                 # List all servers for the given user ID
 
