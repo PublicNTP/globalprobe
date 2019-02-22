@@ -27,6 +27,8 @@ def _clearTestData(logger, dbConnection, dbCursor ):
 def _validateServerAddedCorrectly(logger, serverData, dbCursor):
 
     try:
+        serverFqdn = list(serverData.keys())[0]
+
         dbCursor.execute( 
             "SELECT owner_cognito_id, dns_name, display_name, display_description, display_location, notes, address " + 
             "FROM monitored_servers " +
@@ -34,7 +36,7 @@ def _validateServerAddedCorrectly(logger, serverData, dbCursor):
             "ON monitored_servers.server_id = server_addresses.server_id " +
             "WHERE monitored_servers.dns_name = %s;",
 
-            (serverData['server_address'],)
+            (serverFqdn,) 
         )
 
         results = dbCursor.fetchall()
@@ -48,25 +50,25 @@ def _validateServerAddedCorrectly(logger, serverData, dbCursor):
 
         for currRow in results:
 
-            if currRow[2] != serverData['display_name']:
+            if currRow[2] != serverData[serverFqdn]['display_name']:
                 logger.error("Invalid display name in results row {0} for server {1}".format(
-                    pprint.pformat(currRow), serverData['server_address']) )
+                    pprint.pformat(currRow), serverFqdn) )
                 sys.exit()
 
-            if currRow[3] != serverData['display_description']:
+            if currRow[3] != serverData[serverFqdn]['display_description']:
                 logger.error("Invalid display description in results row {0} for server {1}".format(
-                    pprint.pformat(currRow), serverData['server_address']) )
+                    pprint.pformat(currRow), serverFqdn) )
                 sys.exit()
 
 
-            if currRow[4] != serverData['display_location']:
+            if currRow[4] != serverData[serverFqdn]['display_location']:
                 logger.error("Invalid display location in results row {0} for server {1}".format(
-                    pprint.pformat(currRow), serverData['server_address']) )
+                    pprint.pformat(currRow), serverData[serverFqdn]['server_address']) )
                 sys.exit()
 
-            if currRow[5] != serverData['notes']:
+            if currRow[5] != serverData[serverFqdn]['notes']:
                 logger.error("Invalid display notes in results row {0} for server {1}".format(
-                    pprint.pformat(currRow), serverData['server_address']) )
+                    pprint.pformat(currRow), serverData[serverFqdn]['server_address']) )
                 sys.exit()
 
             addressesFound.append( currRow[6] )
@@ -74,17 +76,17 @@ def _validateServerAddedCorrectly(logger, serverData, dbCursor):
         
         # If sorted, double equals test should work
         addressesFound.sort()
-        serverData['server_addresses'].sort()
-        if addressesFound != serverData['server_addresses']:
+        serverData[serverFqdn]['server_addresses'].sort()
+        if addressesFound != serverData[serverFqdn]['server_addresses']:
             logger.error("Addresses found {0} does not match expected addresses {1}".format(
-                pprint.pformat(addressesFound), pprint.pformat(serverData['server_address'])) )
+                pprint.pformat(addressesFound), pprint.pformat(serverData[serverFqdn]['server_addresses'])) )
 
             sys.exit()
         else:
-            logger.info("Found all expected addresses: {0}".format(pprint.pformat(serverData['server_addresses'])))
+            logger.info("Found all expected addresses: {0}".format(pprint.pformat(serverData[serverFqdn]['server_addresses'])))
 
 
-        logger.info("Unit test passed for {0}".format(serverData['server_address']))
+        logger.info("Unit test passed for {0}".format(serverFqdn))
 
     except Exception as e:
         logger.error("Something went boom in validation. {0}".format(e))
@@ -93,12 +95,8 @@ def _validateServerAddedCorrectly(logger, serverData, dbCursor):
 
 
 def _getNewServerData():
-    ownerUuid = '3665f15f-36d8-42d4-b531-aa9284126bfe'
-
-    serversToAdd = [
-        {
-            'server_address'        : 'unittest2.globalprobe.dev.publicntp.org',
-            'owner_id'              : ownerUuid,
+    serversToAdd = {
+        "unittest2.globalprobe.dev.publicntp.org": {
             'display_name'          : 'Unit Test 2',
             'display_description'   : 'Do some testing',
             'display_location'      : 'Does not exist',
@@ -110,9 +108,7 @@ def _getNewServerData():
                                         '::1'
                                     ]
         },
-
-
-    ]
+    }
 
     return serversToAdd
 
@@ -168,27 +164,26 @@ def _cognitoLogout(cognitoLogin):
     pass
 
 def _addServer(logger, serverDetails):
+    logger.info("Inside add server")
     cognitoTokens = _getCognitoUserTokens()
 
     # Add the server via the API
-    addServerRestEndpoint = "https://25zwa0yf5h.execute-api.us-east-2.amazonaws.com/dev/v1/server/add"
+    addServerRestEndpoint = "https://25zwa0yf5h.execute-api.us-east-2.amazonaws.com/dev/v1/server"
 
-    addServerBody = {
-        "new_server": serverDetails 
-    }
+    serverFqdn = list(serverDetails.keys())[0]
 
     # We have to prove we're a valid user to interact with the API
     postHeaders = {
         "Authorization": cognitoTokens['identity']
     }
 
-    logger.info("Using REST API endpoint to attempt adding server \"{0}\"".format(serverDetails['server_address']) )
+    logger.info("Using REST API endpoint to attempt adding server \"{0}\"".format(serverFqdn))
 
 
-    addAttempt = requests.post( addServerRestEndpoint, json=addServerBody, headers=postHeaders )
+    addAttempt = requests.post( addServerRestEndpoint, json=serverDetails, headers=postHeaders )
 
     if addAttempt.status_code == 200:
-        logger.info("API claims it added server \"{0}\"".format(serverDetails['server_address']) )
+        logger.info("API claims it added server \"{0}\"".format(serverFqdn))
     else:
         logger.warn( "API response status code: {0}".format(addAttempt.status_code) )
     
@@ -200,9 +195,9 @@ def _addNewServers(logger, serversToAdd, dbCursor):
 
     try:
         logger.info("We have {0} servers to add".format(len(serversToAdd)) )
-        for currServer in serversToAdd:
-            _addServer(logger, currServer)
-            _validateServerAddedCorrectly(logger, currServer, dbCursor)
+        for currServerName in serversToAdd:
+            _addServer(logger, { currServerName: serversToAdd[currServerName] })
+            _validateServerAddedCorrectly(logger, { currServerName: serversToAdd[currServerName] }, dbCursor)
 
 
     except Exception as e:

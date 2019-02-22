@@ -119,22 +119,22 @@ def _addDatabaseEntry(logger, ownerUuid, serverFqdn, serverName, serverDescripti
 
 
 def _processServerAdd(logger, event):
+    logger.info("Body: {0}".format(event['body']))
     bodyJson = json.loads(event['body'])
 
-    # User adding the server
-    newServerOwnerCognitoId = bodyJson['new_server']['owner_id']
+    newServerFQDN = list(bodyJson.keys())[0]
+    ownerCognitoId = event['requestContext']['authorizer']['claims']['cognito:username']
 
     # Resolve all addresses for our new server
-    newServerFQDN = bodyJson['new_server']['server_address']
     newServerIpAddresses = _resolveDnsName(logger, newServerFQDN)
 
-    newServerName = bodyJson['new_server']['display_name']
-    newServerDescription = bodyJson['new_server']['display_description']
-    newServerLocation = bodyJson['new_server']['display_location']
-    newServerNotes = bodyJson['new_server']['notes']
+    newServerName = bodyJson[newServerFQDN]['display_name']
+    newServerDescription = bodyJson[newServerFQDN]['display_description']
+    newServerLocation = bodyJson[newServerFQDN]['display_location']
+    newServerNotes = bodyJson[newServerFQDN]['notes']
 
     # Add the new server into our database of servers being monitored
-    _addDatabaseEntry(logger, newServerOwnerCognitoId, newServerFQDN, newServerName,
+    _addDatabaseEntry(logger, ownerCognitoId, newServerFQDN, newServerName,
         newServerDescription, newServerLocation, newServerNotes, newServerIpAddresses)
 
     returnBody = "Processed server add request\n\tNew server FQDN: {0}\n".format(newServerFQDN) + \
