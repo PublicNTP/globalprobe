@@ -7,6 +7,31 @@ import psycopg2
 import re
 
 
+def _getCognitoUsername(event):
+    requestContext      = event['requestContext']
+    authorizer          = requestContext['authorizer']
+    claims              = authorizer['claims']
+
+    return claims['cognito:username']
+
+
+def _connectToDB( ):
+    dbDetails = {
+        'db_host'       : os.environ['db_host'],
+        'db_user'       : os.environ['db_user'],
+        'db_passwd'     : os.environ['db_passwd'],
+        'db_name'       : 'globalprobe'
+    }
+
+    return psycopg2.connect("dbname='{0}' user='{1}' host='{2}' password='{3}'".format(
+        dbDetails['db_name'],
+        dbDetails['db_user'],
+        dbDetails['db_host'],
+        dbDetails['db_passwd']
+    )
+
+
+
 def _resolveDnsName(logger, newServerFqdn):
 
     resolvedAddresses = {
@@ -64,30 +89,8 @@ def _resolveDnsName(logger, newServerFqdn):
 def _addDatabaseEntry(logger, ownerUuid, serverFqdn, serverName, serverDescription, serverLocation, 
         serverNotes, serverAddresses):
    
-    dbDetails = {
-        'db_host'       : os.environ['db_host'],
-        'db_user'       : os.environ['db_user'],
-        'db_passwd'     : os.environ['db_passwd'],
-        'db_name'       : 'globalprobe'
-    }
-
-    """
-    logger.debug("DB info:\n\tHost: {0}\n\tUser: {1}\n\tPassword: {2}\n\tUser: {3}".format(
-        dbDetails['db_host'],
-        dbDetails['db_user'],
-        dbDetails['db_passwd'],
-        dbDetails['db_name']) 
-    )
-    """
-
     try:
-        with psycopg2.connect("dbname='{0}' user='{1}' host='{2}' password='{3}'".format(
-                dbDetails['db_name'],
-                dbDetails['db_user'],
-                dbDetails['db_host'],
-                dbDetails['db_passwd']
-            )
-        ) as dbConnection:
+        with _connectToDb() as dbConnection:
             with dbConnection.cursor() as dbCursor:
 
                 # Add server
@@ -123,7 +126,7 @@ def _processServerAdd(logger, event):
     bodyJson = json.loads(event['body'])
 
     newServerFQDN = list(bodyJson.keys())[0]
-    ownerCognitoId = event['requestContext']['authorizer']['claims']['cognito:username']
+    ownerCognitoId = _getCognitoUsername(event)
 
     # Resolve all addresses for our new server
     newServerIpAddresses = _resolveDnsName(logger, newServerFQDN)
@@ -157,24 +160,9 @@ def _processServerDelete(logger, serverToDelete):
     logger.info("Trying to delete server {0}".format(
         pprint.pformat(serverToDelete)) )
 
-
-    dbDetails = {
-        'db_host'       : os.environ['db_host'],
-        'db_user'       : os.environ['db_user'],
-        'db_passwd'     : os.environ['db_passwd'],
-        'db_name'       : 'globalprobe'
-    }
-
     try:
-        with psycopg2.connect("dbname='{0}' user='{1}' host='{2}' password='{3}'".format(
-                dbDetails['db_name'],
-                dbDetails['db_user'],
-                dbDetails['db_host'],
-                dbDetails['db_passwd']
-            )
-        ) as dbConnection:
+        _connectToDb() as dbConnection:
             with dbConnection.cursor() as dbCursor:
-
                 # Add server
                 dbCursor.execute( "DELETE FROM monitored_servers WHERE dns_name = %s;",
                     (serverToDelete, ) )
@@ -199,32 +187,13 @@ def _processServerDelete(logger, serverToDelete):
 def _processServerList(logger, event):
     # Need the UUID for this user
 
-    #uuid = event['requestContext']['authorizer']['claims']['cognito:username']
-
-    requestContext      = event['requestContext']
-    authorizer          = requestContext['authorizer']
-    claims              = authorizer['claims']
-    cognitoUsername     = claims['cognito:username']
-
-    dbDetails = {
-        'db_host'       : os.environ['db_host'],
-        'db_user'       : os.environ['db_user'],
-        'db_passwd'     : os.environ['db_passwd'],
-        'db_name'       : 'globalprobe'
-    }
+    cognitoUsername     = _getCognitoUsername(event)
 
     serverList = {}
 
     try:
-        with psycopg2.connect("dbname='{0}' user='{1}' host='{2}' password='{3}'".format(
-                dbDetails['db_name'],
-                dbDetails['db_user'],
-                dbDetails['db_host'],
-                dbDetails['db_passwd']
-            )
-        ) as dbConnection:
+        with _connectToDb() as dbConnection:
             with dbConnection.cursor() as dbCursor:
-
                 # List all servers for the given user ID
 
                 dbCursor.execute( 
