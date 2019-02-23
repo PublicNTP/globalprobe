@@ -8,6 +8,7 @@ import pprint
 from warrant.aws_srp import AWSSRP
 import requests
 import psycopg2
+import json
 
 
 
@@ -28,6 +29,8 @@ def _attemptServerHistory(logger, newServers, dbConnection, dbCursor):
 
             if historyAttempt.status_code == 200:
                 logger.info("API claims it got history for {0}".format(currIP) )
+
+                logger.info("Return value: {0}".format(json.dumps(historyAttempt.json())))
 
 
             else:

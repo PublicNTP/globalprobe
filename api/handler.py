@@ -241,7 +241,7 @@ def _processServerHistory(logger, event):
         timeWindowSeconds = result.group(1)
         ipAddress = result.group(2)
 
-        response = _getServerHistory(logger, cognitoUsername, timeWindowSeconds, ip_address=ipAddress)
+        response = _getServerHistory(logger, timeWindowSeconds, cognitoUsername, ip_address=ipAddress)
     else:
         response = {
             "statusCode": 502,
@@ -267,41 +267,76 @@ def _getServerHistory(logger, timeWindowSeconds, cognitoUsername, ip_address=Non
     else:
         whereClause = ""
 
+    probeHistory = {}
+
     try:
         with _connectToDB() as dbConnection:
             with dbConnection.cursor() as dbCursor:
                 
-                 dbCursor.execute(
-                    "SELECT dns_name, address, time_request_sent, probe_site_id, " +
-                        "time_response_received, round_trip_time, estimated_utc_offset " +
+                dbCursor.execute(
+                    "SELECT dns_name, address, time_request_sent, time_response_received, " +
+                        "round_trip_time, estimated_utc_offset, site_location_id " +
                     "FROM monitored_servers " +
                     "JOIN server_addresses " +
                     "ON monitored_servers.server_id = server_addresses.server_id " +
                     "JOIN service_probes " +
                     "ON server_addresses.server_address_id = service_probes.server_address " +
+                    "JOIN probe_sites " +
+                    "ON service_probes.probe_site_id = probe_sites.probe_site_id " +
                     "WHERE owner_cognito_id = %s " +
                     "AND NOW() - time_request_sent <= interval '%s seconds' " +
                     "AND address = %s " 
-                    "ORDER BY dns_name, address, time_request_sent, probe_site_id;",
+                    "ORDER BY dns_name, address, time_request_sent, probe_sites.probe_site_id;",
 
-                    (cognitoUsername, timeWindowSeconds, ip_address) )
+                    (cognitoUsername, int(timeWindowSeconds), ip_address) )
 
-                
-
-
+                historyResults = dbCursor.fetchall()
 
     except Exception as e:
         logger.error("Exception thrown in server history: {0}".format(e) )
- 
+
+    #logger.info("What the fuck in results? How did it get so fucked?\n{0}".format(pprint.pformat(historyResults)))
+
+    for currRow in historyResults:
+        logger.info("Curr row:\n{0}".format(pprint.pformat(currRow)))
+
+        dnsName             = currRow[0]
+        address             = currRow[1]
+        timeSent            = currRow[2]
+        timeRecv            = currRow[3]
+        rtt                 = currRow[4]
+        estimatedOffset     = currRow[5]
+        probeSite           = currRow[6]
+
+
+        if dnsName not in probeHistory:
+            probeHistory[dnsName] = {}
+
+        if address not in probeHistory[dnsName]:
+            probeHistory[dnsName][address] = []
+
+
+        probeHistory[dnsName][address].append( 
+            {
+                'probe_site'                    : probeSite,
+                'request_sent'                  : timeSent.isoformat(),
+                'response_received'             : timeRecv.isoformat(),
+                'round_trip_time_secs'          : rtt.total_seconds(),
+                'local_remote_utc_offset_secs'  : estimatedOffset.total_seconds()
+            }
+        )
+
+        #logger.info("Added probe data:\n{0}".format(pprint.pformat(probeHistory)))
+
     
 
     historyResponse = {
         "statusCode": 200,
         'headers': {
-                'Content-Type': 'application/json',
-                'Access-Control-Allow-Origin': '*'
-            },
-        "body": json.dumps( {} )
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*'
+        },
+        "body": json.dumps(probeHistory)
     }
 
     return historyResponse
