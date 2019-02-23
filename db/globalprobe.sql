@@ -61,6 +61,19 @@ JOIN service_probes ON server_addresses.server_address_id = service_probes.serve
 JOIN probe_sites ON service_probes.probe_site_id = probe_sites.probe_site_id
 ORDER BY owner_cognito_id, estimated_utc_offset, dns_name, address, time_request_sent;
 
+CREATE VIEW probe_history AS
+SELECT dns_name, address, time_request_sent, probe_site_id, time_response_received, round_trip_time, estimated_utc_offset
+FROM monitored_servers
+JOIN server_addresses
+ON monitored_servers.server_id = server_addresses.server_id
+JOIN service_probes
+ON server_addresses.server_address_id = service_probes.server_address
+WHERE owner_cognito_id = '3665f15f-36d8-42d4-b531-aa9284126bfe'
+AND NOW() - time_request_sent <= interval '8640000 seconds'
+AND address='52.66.76.135'
+ORDER BY dns_name, address, time_request_sent, probe_site_id;
+
+
 
 CREATE INDEX monitored_servers_owner_idx                    ON monitored_servers (owner_cognito_id);
 CREATE INDEX monitored_servers_dns_name_idx                 ON monitored_servers (dns_name);

@@ -232,16 +232,79 @@ def _processServerList(logger, event):
 
 
 def _processServerHistory(logger, event):
-    return {
+
+    result = re.match('\/v1/server\/history\/last_n_secs\/(\d+)\/ip_address\/(.+)/?', event['path'])
+
+    cognitoUsername     = _getCognitoUsername(event)
+
+    if result is not None:
+        timeWindowSeconds = result.group(1)
+        ipAddress = result.group(2)
+
+        response = _getServerHistory(logger, cognitoUsername, timeWindowSeconds, ip_address=ipAddress)
+    else:
+        response = {
+            "statusCode": 502,
+            'headers': {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*'
+            },
+            "body": json.dumps( {'invalid_request': event['path']} )
+        }
+
+    return response
+
+
+def _getServerHistory(logger, timeWindowSeconds, cognitoUsername, ip_address=None, dns_fqdn=None):
+    
+    logger.info("Inside pull server history. Time window = {0}, ip_address = {1}, dns_fqdn={2}".format(
+        timeWindowSeconds, ip_address, dns_fqdn) )
+
+    if ip_address is not None:
+        whereClause = " WHERE server_addresses.address = ? "
+    elif dns_fqdn is not None:
+        whereClause = " WHERE monitored_servers.dns_name = ? "
+    else:
+        whereClause = ""
+
+    try:
+        with _connectToDB() as dbConnection:
+            with dbConnection.cursor() as dbCursor:
+                
+                 dbCursor.execute(
+                    "SELECT dns_name, address, time_request_sent, probe_site_id, " +
+                        "time_response_received, round_trip_time, estimated_utc_offset " +
+                    "FROM monitored_servers " +
+                    "JOIN server_addresses " +
+                    "ON monitored_servers.server_id = server_addresses.server_id " +
+                    "JOIN service_probes " +
+                    "ON server_addresses.server_address_id = service_probes.server_address " +
+                    "WHERE owner_cognito_id = %s " +
+                    "AND NOW() - time_request_sent <= interval '%s seconds' " +
+                    "AND address = %s " 
+                    "ORDER BY dns_name, address, time_request_sent, probe_site_id;",
+
+                    (cognitoUsername, timeWindowSeconds, ip_address) )
+
+                
+
+
+
+    except Exception as e:
+        logger.error("Exception thrown in server history: {0}".format(e) )
+ 
+    
+
+    historyResponse = {
         "statusCode": 200,
         'headers': {
-            'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*'
-        },
-        "body": json.dumps( { 'server_history': None } )
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*'
+            },
+        "body": json.dumps( {} )
     }
 
-
+    return historyResponse
 
 
 def _createLogger():
@@ -284,7 +347,7 @@ def globalprobe_api(event, context):
         response = _processServerList(logger, event)
 
 
-    elif event['httpMethod'] == 'GET' and event['path'].startsWith('/v1/server/history'):
+    elif event['httpMethod'] == 'GET' and event['path'].startswith('/v1/server/history'):
         logger.info("Checking server history")
         response = _processServerHistory(logger, event)
     
