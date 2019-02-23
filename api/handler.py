@@ -233,15 +233,27 @@ def _processServerList(logger, event):
 
 def _processServerHistory(logger, event):
 
-    result = re.match('\/v1/server\/history\/last_n_secs\/(\d+)\/ip_address\/(.+)/?', event['path'])
-
-    cognitoUsername     = _getCognitoUsername(event)
+    result = re.match('\/v1/server\/history\/last_n_secs\/(\d+)/?.*', event['path'])
 
     if result is not None:
         timeWindowSeconds = result.group(1)
-        ipAddress = result.group(2)
 
-        response = _getServerHistory(logger, timeWindowSeconds, cognitoUsername, ip_address=ipAddress)
+        ipAddress = None
+        fqdn = None
+
+        result = re.search('\/ip_address\/(.+)/?$', event['path'])
+        if result is not None:
+            ipAddress = result.group(1)
+        else:
+            result = re.search('\/fqdn\/(.+)/?$', event['path'])
+            if result is not None:
+                fqdn = result.group(1)
+
+        logger.info("ip address = {0}, fqdn = {1}".format(ipAddress, fqdn))
+
+        cognitoUsername     = _getCognitoUsername(event)
+
+        response = _getServerHistory(logger, timeWindowSeconds, cognitoUsername, ip_address=ipAddress, dns_fqdn=fqdn)
     else:
         response = {
             "statusCode": 502,
@@ -260,10 +272,13 @@ def _getServerHistory(logger, timeWindowSeconds, cognitoUsername, ip_address=Non
     logger.info("Inside pull server history. Time window = {0}, ip_address = {1}, dns_fqdn={2}".format(
         timeWindowSeconds, ip_address, dns_fqdn) )
 
+    executeParams = [cognitoUsername, int(timeWindowSeconds)]
     if ip_address is not None:
-        whereClause = " WHERE server_addresses.address = ? "
+        whereClause = " AND server_addresses.address = %s "
+        executeParams.append(ip_address)
     elif dns_fqdn is not None:
-        whereClause = " WHERE monitored_servers.dns_name = ? "
+        whereClause = " AND monitored_servers.dns_name = %s "
+        executeParams.append(dns_fqdn)
     else:
         whereClause = ""
 
@@ -285,10 +300,10 @@ def _getServerHistory(logger, timeWindowSeconds, cognitoUsername, ip_address=Non
                     "ON service_probes.probe_site_id = probe_sites.probe_site_id " +
                     "WHERE owner_cognito_id = %s " +
                     "AND NOW() - time_request_sent <= interval '%s seconds' " +
-                    "AND address = %s " 
+                    whereClause +
                     "ORDER BY dns_name, address, time_request_sent, probe_sites.probe_site_id;",
 
-                    (cognitoUsername, int(timeWindowSeconds), ip_address) )
+                    executeParams )
 
                 historyResults = dbCursor.fetchall()
 
