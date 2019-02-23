@@ -79,6 +79,7 @@ CREATE INDEX monitored_servers_owner_idx                    ON monitored_servers
 CREATE INDEX monitored_servers_dns_name_idx                 ON monitored_servers (dns_name);
 
 CREATE INDEX server_addresses_server_id_idx                 ON server_addresses (server_id);
+CREATE INDEX server_addresses_address_idx                   ON server_addresses (address);
 
 CREATE INDEX probe_sites_location_idx                       ON probe_sites (site_location_id);
 
