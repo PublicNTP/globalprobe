@@ -59,7 +59,7 @@ FROM monitored_servers
 JOIN server_addresses ON monitored_servers.server_id = server_addresses.server_id
 JOIN service_probes ON server_addresses.server_address_id = service_probes.server_address
 JOIN probe_sites ON service_probes.probe_site_id = probe_sites.probe_site_id
-ORDER BY owner_cognito_id, estimated_utc_offset, dns_name, address, time_request_sent;
+ORDER BY owner_cognito_id, abs(estimated_utc_offset), dns_name, address, time_request_sent;
 
 CREATE VIEW probe_history AS
 SELECT dns_name, address, time_request_sent, probe_site_id, time_response_received, round_trip_time, estimated_utc_offset
@@ -72,6 +72,27 @@ WHERE owner_cognito_id = '3665f15f-36d8-42d4-b531-aa9284126bfe'
 AND NOW() - time_request_sent <= interval '8640000 seconds'
 AND address='52.66.76.135'
 ORDER BY dns_name, address, time_request_sent, probe_site_id;
+
+CREATE VIEW latest_probe_time AS
+SELECT probe_site_id, MAX(time_Request_sent) 
+FROM service_probes 
+GROUP BY probe_site_id 
+ORDER BY probe_site_id;
+
+CREATE VIEW most_recent_probes AS
+SELECT time_request_sent, site_location_id AS probe_site, dns_name, address,
+    EXTRACT(microseconds FROM estimated_utc_offset)/1000000 AS utc_offset,
+    EXTRACT(microseconds FROM round_trip_time)/1000000 as round_trip
+FROM monitored_servers
+JOIN server_addresses
+ON monitored_servers.server_id = server_addresses.server_id
+JOIN service_probes
+ON server_addresses.server_address_id = service_probes.server_address
+JOIN probe_sites
+ON service_probes.probe_site_id = probe_sites.probe_site_id
+ORDER BY time_request_sent DESC
+LIMIT 20;
+
 
 
 
