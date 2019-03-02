@@ -131,10 +131,25 @@ def _processServerAdd(logger, event):
     # Resolve all addresses for our new server
     newServerIpAddresses = _resolveDnsName(logger, newServerFQDN)
 
-    newServerName = bodyJson[newServerFQDN]['display_name']
-    newServerDescription = bodyJson[newServerFQDN]['display_description']
-    newServerLocation = bodyJson[newServerFQDN]['display_location']
-    newServerNotes = bodyJson[newServerFQDN]['notes']
+    if 'display_name' in bodyJson[newServerFQDN]:
+        newServerName = bodyJson[newServerFQDN]['display_name']
+    else:
+        newServerName = None
+
+    if 'display_description' in bodyJson[newServerFQDN]:
+        newServerDescription = bodyJson[newServerFQDN]['display_description']
+    else:
+        newServerDescription = None
+
+    if 'display_location' in bodyJson[newServerFQDN]:
+        newServerLocation = bodyJson[newServerFQDN]['display_location']
+    else:
+        newServerLocation = None
+
+    if 'notes' in bodyJson[newServerFQDN]:
+        newServerNotes = bodyJson[newServerFQDN]['notes']
+    else:
+        newServerNotes = None
 
     # Add the new server into our database of servers being monitored
     _addDatabaseEntry(logger, ownerCognitoId, newServerFQDN, newServerName,
