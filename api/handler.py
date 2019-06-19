@@ -324,55 +324,50 @@ def _getServerHistory(logger, timeWindowSeconds, cognitoUsername, ip_address=Non
 
                 logger.info("Back from query")
 
-                historyResults = dbCursor.fetchall()
+                for currRow in dbCursor:
+                    #logger.info("Curr row:\n{0}".format(pprint.pformat(currRow)))
 
-    except Exception as e:
-        logger.error("Exception thrown in server history: {0}".format(e) )
-
-    logger.info("Results contain {0} rows".format(len(historyResults)) )
-
-    for currRow in historyResults:
-        #logger.info("Curr row:\n{0}".format(pprint.pformat(currRow)))
-
-        dnsName             = currRow[0]
-        address             = currRow[1]
-        timeSent            = currRow[2]
-        timeRecv            = currRow[3]
-        rtt                 = currRow[4]
-        estimatedOffset     = currRow[5]
-        probeSite           = currRow[6]
+                    dnsName             = currRow[0]
+                    address             = currRow[1]
+                    timeSent            = currRow[2]
+                    timeRecv            = currRow[3]
+                    rtt                 = currRow[4]
+                    estimatedOffset     = currRow[5]
+                    probeSite           = currRow[6]
 
 
-        if dnsName not in probeHistory:
-            probeHistory[dnsName] = {}
+                    if dnsName not in probeHistory:
+                        probeHistory[dnsName] = {}
 
-        if address not in probeHistory[dnsName]:
-            probeHistory[dnsName][address] = []
+                    if address not in probeHistory[dnsName]:
+                        probeHistory[dnsName][address] = []
 
-        # Deal with cases where probes never got responses
-        if timeRecv is not None:
-            probeHistory[dnsName][address].append( 
-                {
-                    'probe_site'                    : probeSite,
-                    'request_sent'                  : timeSent.isoformat(),
-                    'response_received'             : timeRecv.isoformat(),
-                    'round_trip_time_secs'          : rtt.total_seconds(),
-                    'local_remote_utc_offset_secs'  : estimatedOffset.total_seconds()
-                }
-            )
-        else:
-            probeHistory[dnsName][address].append(
-                {
-                    'probe_site'                    : probeSite,
-                    'request_sent'                  : timeSent.isoformat(),
-                    'response_received'             : None,
-                    'round_trip_time_secs'          : None,
-                    'local_remote_utc_offset_secs'  : None
-                }
-            )
+                    # Deal with cases where probes never got responses
+                    if timeRecv is not None:
+                        probeHistory[dnsName][address].append( 
+                            {
+                                'probe_site'                    : probeSite,
+                                'request_sent'                  : timeSent.isoformat(),
+                                'response_received'             : timeRecv.isoformat(),
+                                'round_trip_time_secs'          : rtt.total_seconds(),
+                                'local_remote_utc_offset_secs'  : estimatedOffset.total_seconds()
+                            }
+                        )
+                    else:
+                        probeHistory[dnsName][address].append(
+                            {
+                                'probe_site'                    : probeSite,
+                                'request_sent'                  : timeSent.isoformat(),
+                                'response_received'             : None,
+                                'round_trip_time_secs'          : None,
+                                'local_remote_utc_offset_secs'  : None
+                            }
+                        )
 
         #logger.info("Added probe data:\n{0}".format(pprint.pformat(probeHistory)))
-
+    except Exception as e:
+        logger.error("Exception thrown in server history: {0}".format(e) )
+ 
     
 
     historyResponse = {
