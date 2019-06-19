@@ -303,6 +303,8 @@ def _getServerHistory(logger, timeWindowSeconds, cognitoUsername, ip_address=Non
         with _connectToDB() as dbConnection:
             with dbConnection.cursor() as dbCursor:
                 
+                logger.info("About to execute query")
+
                 dbCursor.execute(
                     "SELECT dns_name, address, time_request_sent, time_response_received, " +
                         "round_trip_time, estimated_utc_offset, site_location_id " +
@@ -314,21 +316,23 @@ def _getServerHistory(logger, timeWindowSeconds, cognitoUsername, ip_address=Non
                     "JOIN probe_sites " +
                     "ON service_probes.probe_site_id = probe_sites.probe_site_id " +
                     "WHERE owner_cognito_id = %s " +
-                    "AND NOW() - time_request_sent <= interval '%s seconds' " +
+                    "AND time_request_sent >= NOW() - interval '%s seconds' " +
                     whereClause +
                     "ORDER BY dns_name, address, time_request_sent, probe_sites.probe_site_id;",
 
                     executeParams )
+
+                logger.info("Back from query")
 
                 historyResults = dbCursor.fetchall()
 
     except Exception as e:
         logger.error("Exception thrown in server history: {0}".format(e) )
 
-    #logger.info("What the fuck in results? How did it get so fucked?\n{0}".format(pprint.pformat(historyResults)))
+    logger.info("Results contain {0} rows".format(len(historyResults)) )
 
     for currRow in historyResults:
-        logger.info("Curr row:\n{0}".format(pprint.pformat(currRow)))
+        #logger.info("Curr row:\n{0}".format(pprint.pformat(currRow)))
 
         dnsName             = currRow[0]
         address             = currRow[1]
@@ -345,16 +349,27 @@ def _getServerHistory(logger, timeWindowSeconds, cognitoUsername, ip_address=Non
         if address not in probeHistory[dnsName]:
             probeHistory[dnsName][address] = []
 
-
-        probeHistory[dnsName][address].append( 
-            {
-                'probe_site'                    : probeSite,
-                'request_sent'                  : timeSent.isoformat(),
-                'response_received'             : timeRecv.isoformat(),
-                'round_trip_time_secs'          : rtt.total_seconds(),
-                'local_remote_utc_offset_secs'  : estimatedOffset.total_seconds()
-            }
-        )
+        # Deal with cases where probes never got responses
+        if timeRecv is not None:
+            probeHistory[dnsName][address].append( 
+                {
+                    'probe_site'                    : probeSite,
+                    'request_sent'                  : timeSent.isoformat(),
+                    'response_received'             : timeRecv.isoformat(),
+                    'round_trip_time_secs'          : rtt.total_seconds(),
+                    'local_remote_utc_offset_secs'  : estimatedOffset.total_seconds()
+                }
+            )
+        else:
+            probeHistory[dnsName][address].append(
+                {
+                    'probe_site'                    : probeSite,
+                    'request_sent'                  : timeSent.isoformat(),
+                    'response_received'             : None,
+                    'round_trip_time_secs'          : None,
+                    'local_remote_utc_offset_secs'  : None
+                }
+            )
 
         #logger.info("Added probe data:\n{0}".format(pprint.pformat(probeHistory)))
 
@@ -408,12 +423,12 @@ def globalprobe_api(event, context):
             }
 
     elif event['httpMethod'] == 'GET' and event['path'] == '/v1/server/list':
-        logger.info("Entry to list")
+        #logger.info("Entry to list")
         response = _processServerList(logger, event)
 
 
     elif event['httpMethod'] == 'GET' and event['path'].startswith('/v1/server/history'):
-        logger.info("Checking server history")
+        #logger.info("Checking server history")
         response = _processServerHistory(logger, event)
     
 

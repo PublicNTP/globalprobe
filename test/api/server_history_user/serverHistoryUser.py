@@ -30,7 +30,7 @@ def _attemptServerHistory(logger, newServers, dbConnection, dbCursor):
 
 
     else:
-        logger.error("Could not get history for {0}".format(currServerName))
+        logger.error("Could not get history for {0}".format(os.environ['GLOBALPROBE_USER']))
 
     _cognitoLogout(cognitoTokens)
 
