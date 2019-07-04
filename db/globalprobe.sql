@@ -107,3 +107,21 @@ CREATE INDEX probe_sites_location_idx                       ON probe_sites (site
 CREATE INDEX service_probes_server_address_time_sent_idx    ON service_probes (server_address, time_request_sent);
 CREATE INDEX service_probes_response_received_idx           ON service_probes (time_response_received);
 CREATE INDEX service_probes_utc_offset_idx                  ON service_probes (server_address, estimated_utc_offset);
+
+
+
+CREATE TABLE service_alerts (
+    service_alert_idx                   bigserial                   PRIMARY KEY,
+    creator_cognito_id                  uuid                        NOT NULL,
+    server_id                           bigint                      REFERENCES monitored_servers(server_id) 
+        ON DELETE CASCADE NOT NULL,
+    date_created                        timestamp with time zone    NOT NULL,
+    notify_email_address                varchar                     NOT NULL,
+    outage_duration_minutes             integer                             ,
+    outage_drop_percentage              integer                             ,
+    outage_drop_duration_window_minutes integer                             ,
+    holdoff_time_minutes                integer                     NOT NULL
+);
+
+CREATE INDEX service_alerts_cognito_id_idx                  ON service_alerts (creator_cognito_id);
+CREATE INDEX service_alerts_server_id_idx                   ON service_alerts (server_id);
