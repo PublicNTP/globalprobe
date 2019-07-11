@@ -461,13 +461,44 @@ def _handleNewAlert(logger, event):
         return errorResponse
 
 
+def _handleDeleteAlert(logger, event):
+
+    alertIdMatches = re.match( '/v1/alert/(\d+)/?', event['path'] )
+
+    if alertIdMatches is None:
+        return  {
+            "statusCode": 400,
+            "headers": {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*'
+            },
+            "body": json.dumps( { "error": "invalid alert delete syntax" } )
+        }
+
+    alertId = alertIdMatches.group(1)
+
+    logger.info("Trying to delete alert ID {0}".format(alertId))
+
+    successResponse = {
+        'statusCode': 200,
+        "headers": {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*'
+        },
+        "body": json.dumps( { 'deleted_alert_id': alertId } )
+    }
+
+    return successResponse
+
 
 
 def _processAlertActions(logger, event):
     if event['httpMethod'] == 'GET' and event['path'] == '/v1/alert/list':
         return _getAlertListForUser(logger, event)
-    if event['httpMethod'] == 'POST' and event['path'] == '/v1/alert/add':
+    elif event['httpMethod'] == 'POST' and event['path'] == '/v1/alert/add':
         return _handleNewAlert(logger, event)
+    elif event['httpMethod'] == 'DELETE' and event['path'].startswith('/v1/alert/'):
+        return _handleDeleteAlert(logger, event)
     else:
         return {
             "statusCode": 200,
