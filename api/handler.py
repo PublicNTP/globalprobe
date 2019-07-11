@@ -5,6 +5,7 @@ import pprint
 import os
 import psycopg2
 import re
+import random
 
 
 def _getCognitoUsername(event):
@@ -384,13 +385,24 @@ def _getServerHistory(logger, timeWindowSeconds, cognitoUsername, ip_address=Non
 
 def _getAlertListForUser(logger, event):
     alertList = {
-        "alerts": [
-            12345678,
-            23456789,
-            34567890,
-            45678901,
-            56789012
-        ]
+        "alerts": {
+            "12345678": {
+                "alert_type": "duration_down",
+                "down_duration_trigger_minutes": 10,
+                "alert_method": "email",
+                "email_address": "outage_alert@publicntp.org",
+                "alert_holdoff_minutes": 60
+            },
+
+            "23456789": {
+                "alert_type": "percentage_drop_over_duration",
+                "percentage_drop_trigger": 10,
+                "duration_trigger_minutes": 30,
+                "alert_method": "email",
+                "email_address": "outage_alert@publicntp.org",
+                "alert_holdoff_minutes": 60
+            }
+        }
     }
 
     return {
@@ -402,9 +414,60 @@ def _getAlertListForUser(logger, event):
         "body": json.dumps(alertList)
     }
 
+
+def _handleNewAlert(logger, event):
+    errorResponse = {
+        "statusCode": 400,
+        "headers": {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*'
+        },
+        "body": json.dumps( { "error": "invalid alert syntax" } )
+    }
+
+    alertId = random.randint(1, 1234567890)
+
+    successResponse = {
+        'statusCode': 200,
+        "headers": {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*'
+        },
+        "body": json.dumps( { 'generated_alert_id': alertId } )
+    }
+
+    #logger.debug(json.dumps(event))
+    #return errorResponse
+
+
+    parsedBody = json.loads(event['body'])
+
+    alert = parsedBody['alert']
+
+    if 'alert_type' not in alert:
+        logger.warn("Did not find alert_type")
+        return errorResponse
+
+    if alert['alert_type'] == 'duration_down':
+        logger.info("alert type is duration")
+        return successResponse
+
+    elif alert['alert_type'] == 'percentage_drop_over_duration':
+        logger.info("Alert type is percent drop")
+        return successResponse
+
+    else:
+        logger.warn("Invalid alert type")
+        return errorResponse
+
+
+
+
 def _processAlertActions(logger, event):
     if event['httpMethod'] == 'GET' and event['path'] == '/v1/alert/list':
         return _getAlertListForUser(logger, event)
+    if event['httpMethod'] == 'POST' and event['path'] == '/v1/alert/add':
+        return _handleNewAlert(logger, event)
     else:
         return {
             "statusCode": 200,
