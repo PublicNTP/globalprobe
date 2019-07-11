@@ -382,6 +382,39 @@ def _getServerHistory(logger, timeWindowSeconds, cognitoUsername, ip_address=Non
     return historyResponse
 
 
+def _getAlertListForUser(logger, event):
+    alertList = {
+        "alerts": [
+            12345678,
+            23456789,
+            34567890,
+            45678901,
+            56789012
+        ]
+    }
+
+    return {
+        'statusCode': 200,
+        'headers': {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*'
+        },
+        "body": json.dumps(alertList)
+    }
+
+def _processAlertActions(logger, event):
+    if event['httpMethod'] == 'GET' and event['path'] == '/v1/alert/list':
+        return _getAlertListForUser(logger, event)
+    else:
+        return {
+            "statusCode": 200,
+            'headers': {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*'
+            },
+            "body": "{ \"message\": \"invalid command\" }"
+        }
+
 def _createLogger():
 
     logger = logging.getLogger()
@@ -399,7 +432,7 @@ def globalprobe_api(event, context):
         response = _processServerAdd(logger, event)
 
     # TODO: refactor this to do the RE in the function
-    elif event['httpMethod'] == 'DELETE':
+    elif event['httpMethod'] == 'DELETE' and event['path'].startswith('/v1/server'):
         logger.info("Entry to delete")
         result = re.match('\/v1/server\/(.+)', event['path'])
 
@@ -425,7 +458,9 @@ def globalprobe_api(event, context):
     elif event['httpMethod'] == 'GET' and event['path'].startswith('/v1/server/history'):
         #logger.info("Checking server history")
         response = _processServerHistory(logger, event)
-    
+
+    elif event['path'].startswith('/v1/alert/'):
+        response = _processAlertActions(logger, event)
 
     else:
         logger.warn("Invalid path: {0}".format(event['path']) )
